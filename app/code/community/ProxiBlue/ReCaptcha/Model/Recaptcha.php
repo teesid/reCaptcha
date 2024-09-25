@@ -165,13 +165,16 @@ class ProxiBlue_ReCaptcha_Model_Recaptcha extends Mage_Captcha_Model_Zend implem
 
     private function _sendRequest($path, $params)
     {
-        $httpRequest = new Zend_Http_Client(
-            ProxiBlue_ReCaptcha_Helper_Data::RECAPTCHA_API_SERVER
-            . '/'
-            . ProxiBlue_ReCaptcha_Helper_Data::RECAPTCHA_API_PATH
-            . '/'
-            . $path
-        );
+        // This makes sure there are no double slashes in the path, eg. https://www.google.com//recaptcha/api/siteverify
+        // As of Sept 2024, the server started returning 404 errors when there were double slashes in the path.
+        $parts = [
+            rtrim(ProxiBlue_ReCaptcha_Helper_Data::RECAPTCHA_API_SERVER, '/'),
+            trim(ProxiBlue_ReCaptcha_Helper_Data::RECAPTCHA_API_PATH, '/'),
+            trim($path, '/')
+        ];
+        $fullUrl = implode('/', $parts);
+
+        $httpRequest = new Zend_Http_Client($fullUrl);
         $httpRequest->setAdapter($this->getAdapter());
         $httpRequest->setParameterPost(array_merge(array('remoteip' => $_SERVER['REMOTE_ADDR']), $params));
         $response = $httpRequest->request('POST');
